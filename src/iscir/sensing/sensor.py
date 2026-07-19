@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import atan2, cos, hypot, pi, sin
 
 import numpy as np
@@ -31,6 +31,7 @@ class FMCWSensor:
     range_std_m: float = 0.05
     velocity_std_mps: float = 0.05
     rng_seed: int | None = 7
+    _rng: np.random.Generator = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._rng = np.random.default_rng(self.rng_seed)
