@@ -7,6 +7,8 @@ from iscir.evaluation import (
     crossing_scenario,
     dense_multi_target_scenario,
     head_on_scenario,
+    plot_benchmark_summary,
+    plot_scenario_truth,
     run_monte_carlo,
     write_latex_table,
     write_summary_csv,
@@ -16,6 +18,7 @@ from iscir.evaluation import (
 
 def main() -> None:
     output_dir = Path("paper/experiments/generated")
+    figure_dir = Path("paper/figures/generated")
     config = ScenarioConfig(
         frame_count=100,
         detection_probability=0.92,
@@ -35,6 +38,10 @@ def main() -> None:
         summary = result.summary
         summaries.append(summary)
         write_summary_json(summary, output_dir / f"{scenario.name}.json")
+        plot_scenario_truth(
+            scenario,
+            figure_dir / f"{scenario.name}_truth.png",
+        )
         print(
             f"{scenario.name:12s} "
             f"Pd={summary.detection_probability_mean:.3f} "
@@ -46,7 +53,9 @@ def main() -> None:
 
     write_summary_csv(summaries, output_dir / "tracking_benchmark.csv")
     write_latex_table(summaries, output_dir / "tracking_benchmark.tex")
-    print(f"Outputs written to {output_dir}")
+    plot_benchmark_summary(summaries, figure_dir)
+    print(f"Tables and data written to {output_dir}")
+    print(f"Figures written to {figure_dir}")
 
 
 if __name__ == "__main__":
