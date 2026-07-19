@@ -1,4 +1,4 @@
-"""Evaluation scenarios, metrics, and Monte Carlo benchmarks."""
+"""Evaluation scenarios, metrics, Monte Carlo benchmarks, and plots."""
 
 from .benchmark import (
     BenchmarkResult,
@@ -10,6 +10,7 @@ from .benchmark import (
     write_summary_csv,
     write_summary_json,
 )
+from .plotting import plot_benchmark_summary, plot_scenario_truth
 from .scenarios import (
     MovingTarget,
     ScenarioConfig,
@@ -44,6 +45,8 @@ __all__ = [
     "dense_multi_target_scenario",
     "evaluate_tracking_sequence",
     "head_on_scenario",
+    "plot_benchmark_summary",
+    "plot_scenario_truth",
     "run_monte_carlo",
     "run_tracking_once",
     "truth_frames",
