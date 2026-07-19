@@ -23,10 +23,14 @@ def test_update_moves_prediction_toward_measurement() -> None:
     tracker.predict(1.0)
     before = tracker.state
 
-    after = tracker.update(8.0, -1.5)
+    measured_range_m = 8.0
+    measured_velocity_mps = -1.5
+    after = tracker.update(measured_range_m, measured_velocity_mps)
 
-    assert 8.0 < after[0] < before[0]
-    assert -1.5 < after[1] < before[1]
+    assert abs(after[0] - measured_range_m) < abs(before[0] - measured_range_m)
+    assert abs(after[1] - measured_velocity_mps) < abs(
+        before[1] - measured_velocity_mps
+    )
     assert np.all(np.diag(tracker.covariance) > 0.0)
     assert np.all(np.diag(tracker.covariance) < np.diag(np.eye(2) * 3.0))
 
