@@ -3,27 +3,20 @@
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from itertools import product
 from math import sqrt
 from pathlib import Path
 import csv
 import json
-from typing import Iterable, Iterator, Sequence
+from typing import Iterator, Sequence
 
 from .benchmark import run_tracking_once
-from .scenarios import (
-    ScenarioConfig,
-    crossing_scenario,
-    dense_multi_target_scenario,
-    head_on_scenario,
-)
+from .scenarios import ScenarioConfig, crossing_scenario, dense_multi_target_scenario, head_on_scenario
 
 
 @dataclass(frozen=True, slots=True)
 class ExperimentCondition:
-    """One point in the synthetic evaluation parameter grid."""
-
     scenario_name: str
     detection_probability: float
     range_noise_std_m: float
@@ -43,8 +36,6 @@ class ExperimentCondition:
 
 @dataclass(frozen=True, slots=True)
 class MassiveCampaignConfig:
-    """Execution settings for a large Monte Carlo campaign."""
-
     total_trials: int = 1_000_000
     workers: int | None = None
     chunk_size: int = 1_000
@@ -62,8 +53,6 @@ class MassiveCampaignConfig:
 
 @dataclass(slots=True)
 class OnlineStatistics:
-    """Numerically stable streaming mean and population variance."""
-
     count: int = 0
     mean: float = 0.0
     m2: float = 0.0
@@ -101,16 +90,23 @@ class CampaignAccumulator:
         return cls(*(OnlineStatistics() for _ in range(7)))
 
     def update(self, row: dict[str, float | int | str]) -> None:
-        self.detection_probability.update(float(row["detection_probability"]))
-        self.range_rmse_m.update(float(row["range_rmse_m"]))
-        self.velocity_rmse_mps.update(float(row["velocity_rmse_mps"]))
-        self.track_continuity.update(float(row["track_continuity"]))
-        self.false_track_count.update(float(row["false_track_count"]))
-        self.id_switches.update(float(row["id_switches"]))
-        self.mean_frame_latency_ms.update(float(row["mean_frame_latency_ms"]))
+        for name in (
+            "detection_probability", "range_rmse_m", "velocity_rmse_mps",
+            "track_continuity", "false_track_count", "id_switches",
+            "mean_frame_latency_ms",
+        ):
+            getattr(self, name).update(float(row[name]))
 
     def to_dict(self) -> dict[str, dict[str, float | int]]:
-        return {name: value.to_dict() for name, value in vars(self).items()}
+        return {
+            "detection_probability": self.detection_probability.to_dict(),
+            "range_rmse_m": self.range_rmse_m.to_dict(),
+            "velocity_rmse_mps": self.velocity_rmse_mps.to_dict(),
+            "track_continuity": self.track_continuity.to_dict(),
+            "false_track_count": self.false_track_count.to_dict(),
+            "id_switches": self.id_switches.to_dict(),
+            "mean_frame_latency_ms": self.mean_frame_latency_ms.to_dict(),
+        }
 
     @classmethod
     def from_dict(cls, data: dict[str, dict[str, float | int]]) -> "CampaignAccumulator":
@@ -118,8 +114,6 @@ class CampaignAccumulator:
 
 
 def default_condition_grid() -> tuple[ExperimentCondition, ...]:
-    """Return a broad grid spanning noise, clutter, detection rate, and density."""
-
     conditions: list[ExperimentCondition] = []
     for scenario_name, pd, range_noise, velocity_noise, clutter in product(
         ("head_on", "crossing"),
@@ -128,28 +122,24 @@ def default_condition_grid() -> tuple[ExperimentCondition, ...]:
         (0.03, 0.08, 0.15, 0.30),
         (0.0, 0.25, 0.5, 1.0, 2.0),
     ):
-        conditions.append(
-            ExperimentCondition(
-                scenario_name=scenario_name,
-                detection_probability=pd,
-                range_noise_std_m=range_noise,
-                velocity_noise_std_mps=velocity_noise,
-                clutter_rate_per_frame=clutter,
-                target_count=2 if scenario_name == "crossing" else 1,
-            )
-        )
+        conditions.append(ExperimentCondition(
+            scenario_name=scenario_name,
+            detection_probability=pd,
+            range_noise_std_m=range_noise,
+            velocity_noise_std_mps=velocity_noise,
+            clutter_rate_per_frame=clutter,
+            target_count=2 if scenario_name == "crossing" else 1,
+        ))
     for target_count in (3, 5, 8, 10):
         for pd, clutter in product((0.80, 0.90, 0.95), (0.5, 1.0, 2.0, 4.0)):
-            conditions.append(
-                ExperimentCondition(
-                    scenario_name="dense",
-                    detection_probability=pd,
-                    range_noise_std_m=0.30,
-                    velocity_noise_std_mps=0.15,
-                    clutter_rate_per_frame=clutter,
-                    target_count=target_count,
-                )
-            )
+            conditions.append(ExperimentCondition(
+                scenario_name="dense",
+                detection_probability=pd,
+                range_noise_std_m=0.30,
+                velocity_noise_std_mps=0.15,
+                clutter_rate_per_frame=clutter,
+                target_count=target_count,
+            ))
     return tuple(conditions)
 
 
@@ -168,8 +158,7 @@ def run_massive_campaign(
     conditions: Sequence[ExperimentCondition] | None = None,
     config: MassiveCampaignConfig | None = None,
 ) -> Path:
-    """Run a memory-bounded, resumable campaign and return the summary path."""
-
+    """Run a memory-bounded campaign using processes and resumable checkpoints."""
     settings = config or MassiveCampaignConfig()
     condition_grid = tuple(conditions or default_condition_grid())
     directory = Path(output_dir)
@@ -179,7 +168,7 @@ def run_massive_campaign(
     summary_path = directory / "summary.json"
 
     completed, accumulator = _load_checkpoint(checkpoint_path)
-    if completed >= settings.total_trials:
+    if completed >= settings.total_trials and summary_path.exists():
         return summary_path
 
     specs = iter_trial_specs(
@@ -203,25 +192,17 @@ def run_massive_campaign(
                     _write_checkpoint(checkpoint_path, offset, accumulator)
 
     _write_checkpoint(checkpoint_path, settings.total_trials, accumulator)
-    summary_path.write_text(
-        json.dumps(
-            {
-                "total_trials": settings.total_trials,
-                "condition_count": len(condition_grid),
-                "statistics": accumulator.to_dict(),
-            },
-            indent=2,
-            sort_keys=True,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    summary_path.write_text(json.dumps({
+        "total_trials": settings.total_trials,
+        "condition_count": len(condition_grid),
+        "statistics": accumulator.to_dict(),
+    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return summary_path
 
 
 def _run_trial(spec: tuple[ExperimentCondition, int]) -> dict[str, float | int | str]:
     condition, seed = spec
-    scenario_config = ScenarioConfig(
+    config = ScenarioConfig(
         frame_count=condition.frame_count,
         detection_probability=condition.detection_probability,
         range_noise_std_m=condition.range_noise_std_m,
@@ -229,14 +210,20 @@ def _run_trial(spec: tuple[ExperimentCondition, int]) -> dict[str, float | int |
         clutter_rate_per_frame=condition.clutter_rate_per_frame,
     )
     if condition.scenario_name == "head_on":
-        scenario = head_on_scenario(scenario_config)
+        scenario = head_on_scenario(config)
     elif condition.scenario_name == "crossing":
-        scenario = crossing_scenario(scenario_config)
+        scenario = crossing_scenario(config)
     else:
-        scenario = dense_multi_target_scenario(condition.target_count, scenario_config)
+        scenario = dense_multi_target_scenario(condition.target_count, config)
     run = run_tracking_once(scenario, seed=seed)
     return {
-        **asdict(condition),
+        "scenario_name": condition.scenario_name,
+        "configured_detection_probability": condition.detection_probability,
+        "range_noise_std_m": condition.range_noise_std_m,
+        "velocity_noise_std_mps": condition.velocity_noise_std_mps,
+        "clutter_rate_per_frame": condition.clutter_rate_per_frame,
+        "target_count": condition.target_count,
+        "frame_count": condition.frame_count,
         "seed": seed,
         "detection_probability": run.metrics.detection_probability,
         "range_rmse_m": run.metrics.range_rmse_m,
@@ -250,11 +237,11 @@ def _run_trial(spec: tuple[ExperimentCondition, int]) -> dict[str, float | int |
 
 def _result_fieldnames() -> list[str]:
     return [
-        "scenario_name", "detection_probability", "range_noise_std_m",
+        "scenario_name", "configured_detection_probability", "range_noise_std_m",
         "velocity_noise_std_mps", "clutter_rate_per_frame", "target_count",
-        "frame_count", "seed", "range_rmse_m", "velocity_rmse_mps",
-        "track_continuity", "false_track_count", "id_switches",
-        "mean_frame_latency_ms",
+        "frame_count", "seed", "detection_probability", "range_rmse_m",
+        "velocity_rmse_mps", "track_continuity", "false_track_count",
+        "id_switches", "mean_frame_latency_ms",
     ]
 
 
@@ -267,13 +254,8 @@ def _load_checkpoint(path: Path) -> tuple[int, CampaignAccumulator]:
 
 def _write_checkpoint(path: Path, completed: int, accumulator: CampaignAccumulator) -> None:
     temporary = path.with_suffix(".tmp")
-    temporary.write_text(
-        json.dumps(
-            {"completed_trials": completed, "statistics": accumulator.to_dict()},
-            indent=2,
-            sort_keys=True,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    temporary.write_text(json.dumps({
+        "completed_trials": completed,
+        "statistics": accumulator.to_dict(),
+    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(path)
