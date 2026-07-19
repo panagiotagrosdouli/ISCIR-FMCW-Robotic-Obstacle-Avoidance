@@ -10,6 +10,7 @@ from .benchmark import (
     write_summary_csv,
     write_summary_json,
 )
+from .navigation_metrics import NavigationMetrics, evaluate_navigation_scenario
 from .plotting import plot_benchmark_summary, plot_scenario_truth
 from .scenarios import (
     MovingTarget,
@@ -34,6 +35,7 @@ __all__ = [
     "BenchmarkRun",
     "BenchmarkSummary",
     "MovingTarget",
+    "NavigationMetrics",
     "ScenarioConfig",
     "ScenarioFrame",
     "SyntheticScenario",
@@ -43,6 +45,7 @@ __all__ = [
     "TruthTarget",
     "crossing_scenario",
     "dense_multi_target_scenario",
+    "evaluate_navigation_scenario",
     "evaluate_tracking_sequence",
     "head_on_scenario",
     "plot_benchmark_summary",
