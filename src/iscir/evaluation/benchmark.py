@@ -198,13 +198,14 @@ def write_latex_table(
         r"\hline",
     ]
     for summary in summaries:
+        escaped_name = summary.scenario_name.replace("_", "\\_")
         lines.append(
-            f"{summary.scenario_name.replace('_', r'\_')} & "
+            f"{escaped_name} & "
             f"{summary.detection_probability_mean:.3f} & "
             f"{summary.range_rmse_mean_m:.3f} & "
             f"{summary.velocity_rmse_mean_mps:.3f} & "
             f"{summary.track_continuity_mean:.3f} & "
-            f"{summary.id_switches_mean:.2f} \\\\" 
+            f"{summary.id_switches_mean:.2f} \\\\"
         )
     lines.extend([r"\hline", r"\end{tabular}"])
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
