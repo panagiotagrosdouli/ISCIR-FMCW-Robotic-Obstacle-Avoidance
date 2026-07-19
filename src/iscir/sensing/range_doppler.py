@@ -109,7 +109,7 @@ def range_doppler_map(
 
     doppler_window = np.hanning(sequence.num_chirps)[:, None]
     rd_complex = np.fft.fftshift(
-        np.fft.fft(range_fft * doppler_window, n=doppler_size, axis=0), axis=0
+        np.fft.fft(range_fft * doppler_window, n=doppler_size, axis=0), axes=0
     )
     magnitude = np.abs(rd_complex).T
     peak = float(np.max(magnitude)) if magnitude.size else 0.0
