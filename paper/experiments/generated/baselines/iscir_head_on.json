@@ -7,7 +7,7 @@
   "frames_per_trial": 100,
   "id_switches": 1.61,
   "mean_commanded_velocity_mps": 0.7680250991138999,
-  "mean_frame_latency_ms": 0.07932130060908094,
+  "mean_frame_latency_ms": 0.07518643710318429,
   "minimum_time_to_collision_s": 0.0,
   "range_rmse_m": 0.0765664732135238,
   "scenario": "head_on",
