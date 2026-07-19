@@ -1,0 +1,12 @@
+{
+  "backend": "iscir",
+  "detection_probability": 0.989,
+  "false_track_count": 25.71,
+  "id_switches": 3.77,
+  "mean_frame_latency_ms": 0.16620301279654087,
+  "range_rmse_m": 0.07648412624066347,
+  "scenario": "crossing",
+  "track_continuity": 0.989,
+  "trials": 100,
+  "velocity_rmse_mps": 0.06267391315818688
+}

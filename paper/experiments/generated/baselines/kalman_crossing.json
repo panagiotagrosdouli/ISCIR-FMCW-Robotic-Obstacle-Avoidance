@@ -1,0 +1,12 @@
+{
+  "backend": "kalman",
+  "detection_probability": 0.9889,
+  "false_track_count": 26.183,
+  "id_switches": 3.645,
+  "mean_frame_latency_ms": 0.13502161717646233,
+  "range_rmse_m": 0.07778871252223463,
+  "scenario": "crossing",
+  "track_continuity": 0.9889,
+  "trials": 1000,
+  "velocity_rmse_mps": 0.06293590075260055
+}

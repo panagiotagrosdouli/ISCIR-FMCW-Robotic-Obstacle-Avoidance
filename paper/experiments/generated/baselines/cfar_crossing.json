@@ -1,0 +1,12 @@
+{
+  "backend": "cfar",
+  "detection_probability": 0.949375,
+  "false_track_count": 0.0,
+  "id_switches": 93.579,
+  "mean_frame_latency_ms": 0.002572604727247381,
+  "range_rmse_m": 0.19974471500915833,
+  "scenario": "crossing",
+  "track_continuity": 0.949375,
+  "trials": 1000,
+  "velocity_rmse_mps": 0.09965076071976048
+}
