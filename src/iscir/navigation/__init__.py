@@ -7,6 +7,7 @@ from .collision import (
     predict_collision,
     predict_collisions,
 )
+from .pipeline import NavigationFrameResult, RadarNavigationPipeline
 from .reactive_controller import (
     ReactiveControllerConfig,
     VelocityCommand,
@@ -18,6 +19,8 @@ __all__ = [
     "CollisionConfig",
     "CollisionLevel",
     "CollisionPrediction",
+    "NavigationFrameResult",
+    "RadarNavigationPipeline",
     "ReactiveControllerConfig",
     "RiskConfig",
     "TrackRisk",
